@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="layui/css/layui.css">
+		<link rel= icon href="./cloud.png">
+        <style type="text/css">
+      		.container{
+      			width: 420px;
+      			height: 320px;
+		 		 min-height: 320px;  
+		 		 max-height: 320px;  
+		 		 position: absolute;   
+		 		 top: 0;  
+		 		 left: 0;  
+		 		 bottom: 0;  
+		 		 right: 0;  
+		 		 margin: auto;  
+		 		 padding: 20px;  
+		 		 z-index: 130;  
+		 		 border-radius: 8px;  
+		 		 background-color: #fff;  
+		 		 box-shadow: 0 3px 18px rgba(100, 0, 0, .5); 
+		 		 font-size: 16px;
+      		}
+      		.close{
+      			background-color: white;
+      			border: none;
+      			font-size: 18px;
+      			margin-left: 410px;
+      			margin-top: -10px;
+      		}
+ 
+        	.layui-input{
+        		border-radius: 5px;
+        		width: 300px;
+        		height: 40px;
+        		font-size: 15px;
+        	}
+        	.layui-form-item{
+        		margin-left: -20px;
+        	}
+			#logoid{ 
+				margin-top: -16px;
+		 		 padding-left:30px; 
+		 		 padding-bottom: 15px;
+			}
+			.layui-btn{
+				margin-left: -50px;
+				border-radius: 5px;
+        		width: 350px;
+        		height: 40px;
+        		font-size: 15px;
+			}
+			.verity{
+				width: 120px;
+			}
+			.font-set{
+				font-size: 13px;
+				text-decoration: none; 
+				margin-left: 120px;
+			}
+			a:hover{
+			 text-decoration: underline; 
+			}
+
+        </style>
+    </head>
+    <body>
+    	<form class="layui-form" action="" method="post">
+    		<div class="container">
+    			<button class="close" title="关闭">&nbsp;&nbsp;</button>
+    			<div class="layui-form-mid layui-word-aux">
+    				<img id="logoid" src="./logolw.png" height="35px">	
+    			</div>
+			  <div class="layui-form-item">
+			    <label class="layui-form-label">用户名</label>
+			    <div class="layui-input-block">
+			      <input id="name"type="text" name="title" required lay-verify="required" placeholder="请输入用户名" autocomplete="off" class="layui-input">
+			    </div>
+			  </div>
+			  <div class="layui-form-item">
+			    <label class="layui-form-label">密 &nbsp;&nbsp;码</label>
+			    <div class="layui-input-inline">
+			      <input id="pass"type="password" name="password" required lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">
+			    </div>
+			    <!-- <div class="layui-form-mid layui-word-aux">辅助文字</div> -->
+			  </div>
+<!-- 			  <div class="layui-form-item">
+				    <label class="layui-form-label">记住密码</label>
+				    <div class="layui-input-block">
+				      <input type="checkbox" name="close" lay-skin="switch" lay-text="ON|OFF">
+				    </div>
+			  </div> -->
+ 
+			  <div class="layui-form-item">
+			    <div class="layui-input-block">
+			      <button id= "loginNow" class="layui-btn layui-btn-normal">登录</button>	     
+			    </div>
+			  </div>
+			</div>
+		</form>
+        <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js"></script>
+		<script type="text/javascript" src="layui/layui.js"></script>
+		<script>
+            var index = parent.layer.getFrameIndex(window.name)
+			  $('#loginNow').click(function(){
+                    var name = $('#name').val();
+                    var pass = $('#pass').val();
+					name ='acdc';
+					pass = '123';
+                    if (name ==='acdc' && pass ==='123') {
+                        parent.layer.msg('密码正确');
+                        parent.layer.close(index);
+                    }
+                    else{
+                        layer.msg('账号或密码错误');
+                        $('#pass').val('');
+                    }
+                });	  
+			</script>
+    </body>
+</html>

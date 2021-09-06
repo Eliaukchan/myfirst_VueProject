@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="./layer/theme/default/layer.css">
+    <title>智视云视频核查登录</title>
+    <link rel= icon href="./cloud.png">
+</head>
+<body>
+    
+<style lang="less">
+    .el-icon-arrow-down::before{
+        font-size: 16px;
+        content: "筛选";
+        margin-left: 5px;
+        color:red;
+    }
+    .disbutt {
+                pointer-events: none;
+                cursor: not-allowed;
+                box-shadow: none;
+                opacity: .65;
+                background: #e4e4e4;
+                color: #0b0b0b;
+                cursor: not-allowed;
+    }
+    .el-dialog__title{
+        background-color:rgba(0, 255, 221, 0.979);
+    }
+    </style>
+    <script src="//unpkg.com/vue/dist/vue.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="./layer/layer.js"></script>
+    <script src="./lodash.js"></script>
+    <div id="app">
+        <!-----height 属性用于固定表头 border属性用于提供表格边框 stripe用于区分奇数和偶数行-->
+        <el-table border height="660px"  stripe style="width: 100%;" :data="userList.slice((currentPage-1)*pagesize,currentPage*pagesize)">
+            <el-table-column type="index" width="50">
+            </el-table-column>
+            <el-table-column label="抽签号" sortable prop="lottery" width="180">
+            </el-table-column>
+            <el-table-column label="考生姓名" sortable prop="name" width="180">
+            </el-table-column>
+            <el-table-column
+             label="监督员编号" 
+             sortable column-key="super" 
+             prop="supervisorValue"
+             :filters="[{text: '1', value: '监督员1'}, {text: '2', value: '监督员2'}, {text: '3', value: '监督员3'},{text: '4', value: '监督员4'},{text: '5', value: '监督员5'},{text: '6', value: '监督员6'}]" 
+             :filter-method="filterSuper"
+             filter-placement="bottom-end"
+             width="180">
+            </el-table-column>
+            <el-table-column label="监督员名称" prop="supervisorName" width="200">
+            </el-table-column>
+            <el-table-column label="描述" prop="remark" width="520" height="20px">
+            </el-table-column> 
+            <el-table-column label="操作" width="200">
+                <template slot-scope="scope">
+                    <el-button type="primary"
+                        round
+                        size="mini"
+                        @click="handleEdit(scope.$index, scope.row)">视频审查</el-button>
+                    <!-- <el-button
+                        size="mini"
+                        type="danger"
+                        @click="handleDelete(scope.$index, scope.row)">删除</el-button> -->
+                        <el-button
+                        disabled
+                        round
+                        size="mini"
+                        @click="handleEditText(scope.$index, scope.row)">编辑描述</el-button>
+                </template>
+            </el-table-column>   
+        </el-table>
+        <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange" :current-page="currentPage"
+            :page-sizes="[5, 10, 20, 40]" :page-size="pagesize" layout="total, sizes, prev, pager, next, jumper"
+            :total="userList.length">
+            <!-- 这是显示总共有多少数据 -->
+        </el-pagination>
+        <template>
+        <el-dialog :title="videoInfo" :visible.sync="dialogVideoVisible" :before-close="handleClose">
+            <!-- <el-button disabled>{{}}</el-button> -->
+            <el-container>
+                <el-main>
+            <video :src="videoSrc" width="100%" height="350px"  controls="controls" autoplay="autoplay" autobuffer="autobuffer" loop="loop">
+            </video>
+                </el-main>
+            </el-container>
+                <el-input type="textarea"autosize disabled v-model="videoInput" placeholder="如果视频异常，请在此栏输入异常情况，比如：视频黑屏，无声音"></el-input>
+            <div slot="footer" class="dialog-footer">
+            <el-button class="addbtn" type="primary" style="position: absolute; left: 20px;" round @click="addChange">观看上一个视频</el-button>
+            <el-button class="reducebtn" type="primary" round @click="reduceChange">观看下一个视频</el-button>
+            </div>
+        </el-dialog>
+        <el-dialog title="编辑描述" :visible.sync="dialogTextVisible" :before-close="handleTextClose">
+            <input placeholder="如果视频异常，请在此栏输入异常情况，比如：视频黑屏，无声音" type="text">
+        </el-dialog>
+        </template>
+    </div>
+    <script>
+        layer.open({
+            type: 2,
+            title:"智视云视频核查登录",
+            area: ['100%', '100%'], //窗口大小
+            fixed: true, //固定
+            maxmin: false,
+            closeBtn:0,
+            content: './login_test.html'
+        });
+        Vue.prototype.$axios = axios
+        let acdc = [];
+        // let groupbyAcdc = [];
+        let temp = [];
+        let result = [];
+        let book = 0;
+        async function getList() {
+            try {
+                let res = await this.axios.get('./test3.json')
+                console.log("异步操作得到了result", res)
+                temp = _.groupBy(res.data.list,"lottery")
+                console.log("异步操作得到了temp", temp)
+            } catch (err) {
+                console.error(err)
+                alert(`加载数据错误：${err.message}`);
+            }
+        }
+        var Main = {
+            data() {
+                return {
+                    currentPage: 1, //初始页
+                    pagesize: 40,    //    每页的数据
+                    userList: [],   //所有的数据
+                    viDatas:[], //媒体的数组
+                    videoInfo:"智视云视频核查",
+                    videoSrc:"", //单个视频的地址
+                    videoInput:"",  //绑定了input输入框的元素
+                    dialogVideoVisible:false, //关闭媒体的dialog
+                    dialogTextVisible:false, //关闭文本编辑的dialog
+                }
+            },
+            async created() {
+                await getList()
+                this.loadList()
+            },
+            methods: {
+                handleEdit:function(index, row){
+                    // console.log("获得数据的序号index",index);
+                    // console.log("获得本行的数据本身row",row);
+                    acdc = [];
+                    this.videoInfo = "智视云视频核查"
+                    this.dialogVideoVisible = true
+                    this.videoInput = row.remark
+                    this.videoSrc = ""
+                    console.log("获得本行的数据row",row.medias);
+                    console.log("获得本行的数据长度",row.medias.length);
+                    acdc = row.medias;
+                    console.log("space",row.videoInput)
+                    this.videoSrc = row.medias[0];
+                    this.videoInfo = `${this.videoInfo} ${row.lottery} 视频总数:${row.medias.length}`
+                    console.log("space",row.lottery)
+                    // var str = '<video width="100%" height="80%"  controls="controls" autobuffer="autobuffer"  autoplay="autoplay" loop="loop">' +
+                    //             '<source src='+this.videoSrc+' type="video/mp4"></video><button @click="changeSrc()">视频一</button>'
+                    //console.log(obj);
+                    console.log("测试data的首个视频",this.videoSrc);
+                },
+                handleEditText(index, row){
+                    this.dialogTextVisible = true
+                    console.log("数据的index",index);
+                    console.log("row",row);
+                },
+                // 初始页currentPage、初始每页数据数pagesize和数据data
+                handleSizeChange: function (size) {
+                    this.pagesize = size;
+                    console.log(this.pagesize)  //每页下拉显示数据
+                },
+                handleCurrentChange: function (currentPage) {
+                    this.currentPage = currentPage;
+                    console.log(this.currentPage)  //点击第几页
+                },
+                // handleUserList() {
+                //     this.$axios.get('./a1.json').then(res => {  //这是从本地请求的数据接口，
+                //         console.log("这是从本地请求的数据接口", res.data.list)
+                //         this.userList = result;
+                //     })
+                // },
+                loadList: function() {
+                    console.log("异步操作之后展示temp",temp);
+                    for (let key in temp) {
+                            let first = _.first(temp[key]);
+                            // console.log("temp[key]",temp);
+                            // console.log("first",first);
+                            first.medias = [];
+                            for (let item of temp[key]) {
+                                // console.log("item",item);
+                                first.medias.push(item.path);
+                                delete item.path;
+                            }
+                            result.push(first);
+                        }
+                        console.log("最终结果",result);
+                        this.userList = result;
+                    },
+                handleClose:function(done) {
+                    // this.$confirm('是否保存内容？')
+                    // .then(() => {
+                        //做一些保存的操作
+                        $('.addbtn').removeClass('disbutt')
+                        $('.reducebtn').removeClass('disbutt')
+                        book = 0
+                        this.videoSrc = ""
+                        this.dialogVideoVisible = false
+                        console.log(this.videoInput);
+                        this.$message({
+                            type:'success',
+                            message:'已保存'
+                        })
+                    // })
+                    // .catch(() => {
+                    //     $('.addbtn').removeClass('disbutt')
+                    //     $('.reducebtn').removeClass('disbutt')
+                    //     book = 0
+                    //     this.videoSrc = ""
+                    //     this.dialogVideoVisible = false
+                    //     this.$message({
+                    //         type:'success',
+                    //         message:'已保存'
+                    //     })
+                    // });
+                },
+                handleTextClose:function(done){
+                    this.$confirm('是否保存内容？')
+                    .then(() => {
+                        //做一些保存的操作
+                        this.$message({
+                            type:'success',
+                            message:'已保存'
+                        })
+                        this.dialogTextVisible = false
+                    })
+                    .catch(() => {
+                        this.$message({
+                            type:'info',
+                            message:'已取消保存'
+                        })
+                        this.dialogTextVisible = false
+                    });
+                },
+                addChange:function(){
+                    book--;
+                    if(acdc[book]){
+                        $('.reducebtn').removeClass('disbutt')
+                        this.videoSrc = acdc[book];
+                    }
+                    else{
+                        book++;
+                        $('.addbtn').addClass('disbutt')
+                        layer.msg("视频已经到尽头了^_^")
+                    }
+                },
+                reduceChange:function(){
+                    console.log("我裂开",acdc);
+                    book++;
+                    if(acdc[book]){
+                        $('.addbtn').removeClass('disbutt')
+                        this.videoSrc = acdc[book];
+                        
+                    }
+                    else{
+                        book--;
+                        $('.reducebtn').addClass('disbutt')
+                        layer.msg("视频已经到尽头咯^_^")
+                    }
+                },
+                filterSuper:function(value, row, column){
+                    const property = column['property'];
+                    return row[property] === value;
+                }
+            },
+                // this.axios.get('./a1.json').then(res => {  //这是从本地请求的数据接口，
+        //     console.log(res.data.list)
+        //     acdc = res.data.list
+        //     console.log("acdc得到了result", acdc)
+        // })
+        //     .then(res => {
+        //         return _.groupBy(acdc, "lottery")
+        //         console.log("groupby success!", groupbyAcdc)
+        //         //console.log("groupby success!",groupbyAcdc.A306)
+        //         //这是第一组的抽签号A306
+        //     })
+        //     .then(groupBy => {
+        //         console.log(groupBy);
+        //         for (let key in groupBy) {
+        //             let first = _.first(groupBy[key]);
+        //             // console.log("groupBy[key]",groupBy);
+        //             // console.log("first",first);
+        //             first.medias = [];
+        //             for (let item of groupBy[key]) {
+        //                 console.log("item",item);
+        //                 first.medias.push(item.path);
+        //                 delete item.path;
+        //             }
+        //             result.push(first);
+        //         }
+        //         console.log(result);
+        //         return result;
+        //     })
+        }
+        var Ctor = Vue.extend(Main)
+        new Ctor().$mount('#app')
+    </script>
+</body>
+
+</html>
